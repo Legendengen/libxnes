@@ -2,14 +2,20 @@
 
 ***
 # Libxnes
-A lightweight, portable pure `C99` NES emulator library.
+A nice NES emulator fork from https://github.com/xboot/libxnes
+This project is working in my ARM machines, and SDL2's graphics hardware rendering works well
 
 ## Getting Started
-
-Just type `make` at the root directory, you will see some binary of [examples](examples) for usage.
+To compile the arm target
+Make sure your development environment has libsdl2
+Modify examples/linux/Makefile
+The following environment variable is replaced with your env:
+    CROSS_COMPILE
+    LIBDIRS
+    INCDIRS
 
 ```shell
-cd libxnes
+cd examples/linux
 make
 ```
 

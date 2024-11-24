@@ -2,7 +2,7 @@
 # Makefile for application
 #
 
-CROSS_COMPILE	?=
+CROSS_COMPILE	?=/home/deng/9-t527-tina-aiot-v1.2/tina/out/t527/demo_linux_aiot/buildroot/buildroot/host/bin/aarch64-none-linux-gnu-
 
 AS			:=	$(CROSS_COMPILE)gcc -x assembler-with-cpp
 CC			:=	$(CROSS_COMPILE)gcc
@@ -24,15 +24,15 @@ OCFLAGS		:=	-v -O binary
 ODFLAGS		:=
 MCFLAGS		:=
 
-LIBDIRS		:=
-LIBS 		:=
-INCDIRS		:=	.
+LIBDIRS		:=	/home/deng/9-t527-tina-aiot-v1.2/tina/out/t527/demo_linux_aiot/buildroot/buildroot/host/aarch64-buildroot-linux-gnu/sysroot/usr/lib
+LIBS 		:=	-lSDL2
+INCDIRS		:=	/home/deng/9-t527-tina-aiot-v1.2/tina/out/t527/demo_linux_aiot/buildroot/buildroot/host/aarch64-buildroot-linux-gnu/sysroot/usr/include
 SRCDIRS		:=	.
 
-CFLAGS		+=	$(shell sdl2-config --cflags) -D_GNU_SOURCE
-CXXFLAGS	+=	$(shell sdl2-config --cflags) -D_GNU_SOURCE
+#CFLAGS		+=	$(shell sdl2-config --cflags) -D_GNU_SOURCE
+#CXXFLAGS	+=	$(shell sdl2-config --cflags) -D_GNU_SOURCE
 LIBDIRS		+=
-LIBS		+=	$(shell sdl2-config --libs)
+#LIBS		+=	$(shell sdl2-config --libs)
 sinclude	../../src/xnes.mk
 
 OUTPUT		:=	output

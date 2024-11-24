@@ -22,16 +22,30 @@
  * SOFTWARE.
  */
 
-#include <SDL.h>
+#include <SDL2/SDL.h>
 #include <xnes.h>
 
-#define SDL_SCREEN_SCALE	(4)
+#define SDL_SCREEN_SCALE	(2)
+
+/* 
+ * if you want sdl's audio output to bluealsa
+ * modify env: 'AUDIODEV' 
+ * example: export AUDIODEV=bluealsa:30:05:05:5D:EC:50
+ */
+
+#define SDL_RENDER_FULL_SCREEN
+
+const int NES_DISP_W = 256;
+const int NES_DISP_H = 240;
+
+SDL_Rect draw_rect = {0, 0, NES_DISP_W * SDL_SCREEN_SCALE, NES_DISP_H * SDL_SCREEN_SCALE};
 
 struct window_context_t {
 	SDL_Window * window;
-	SDL_Surface * screen;
+	SDL_DisplayMode disp;
 	SDL_Surface * surface;
 	SDL_Renderer * renderer;
+	SDL_Texture* texture;
 	SDL_Joystick * joy[2];
 	SDL_AudioDeviceID audio;
 	SDL_AudioSpec wantspec, havespec;
@@ -65,14 +79,14 @@ static struct window_context_t * window_context_alloc(void)
 	SDL_EventState(SDL_DROPFILE, SDL_ENABLE);
 	SDL_SetHint(SDL_HINT_VIDEO_X11_NET_WM_BYPASS_COMPOSITOR, "0");
 	SDL_SetHint(SDL_HINT_MOUSE_FOCUS_CLICKTHROUGH, "1");
-
-	wctx->window = SDL_CreateWindow("XNES - The Nintendo Entertainment System Emulator", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 256 * SDL_SCREEN_SCALE, 240 * SDL_SCREEN_SCALE, SDL_WINDOW_SHOWN | SDL_WINDOW_INPUT_FOCUS | SDL_WINDOW_MOUSE_FOCUS);
-	wctx->screen = SDL_GetWindowSurface(wctx->window);
+	SDL_GetDisplayMode(0, 0, &wctx->disp);
+	wctx->window = SDL_CreateWindow("XNES - The Nintendo Entertainment System Emulator", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, wctx->disp.w, wctx->disp.h, SDL_WINDOW_SHOWN | SDL_WINDOW_INPUT_FOCUS | SDL_WINDOW_MOUSE_FOCUS);
 	SDL_GetWindowSize(wctx->window, &wctx->width, &wctx->height);
 
 	SDL_PixelFormatEnumToMasks(SDL_PIXELFORMAT_ARGB8888, &bpp, &r, &g, &b, &a);
-	wctx->surface = SDL_CreateRGBSurface(SDL_SWSURFACE, 256 * SDL_SCREEN_SCALE, 240 * SDL_SCREEN_SCALE, bpp, r, g, b, a);
-	wctx->renderer = SDL_CreateSoftwareRenderer(wctx->surface);
+	wctx->surface = SDL_CreateRGBSurface(0, NES_DISP_W * SDL_SCREEN_SCALE, NES_DISP_H * SDL_SCREEN_SCALE, bpp, r, g, b, a);
+	wctx->renderer = SDL_CreateRenderer(wctx->window, -1, SDL_RENDERER_ACCELERATED);
+	wctx->texture = SDL_CreateTexture(wctx->renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, NES_DISP_W * SDL_SCREEN_SCALE, NES_DISP_H * SDL_SCREEN_SCALE);
 	wctx->joy[0] = NULL;
 	wctx->joy[1] = NULL;
 
@@ -113,8 +127,6 @@ static void window_context_free(struct window_context_t * wctx)
 			wctx->joy[1] = NULL;
 		}
 		SDL_CloseAudio();
-		if(wctx->screen)
-			SDL_FreeSurface(wctx->screen);
 		if(wctx->surface)
 			SDL_FreeSurface(wctx->surface);
 		if(wctx->renderer)
@@ -128,22 +140,30 @@ static void window_context_free(struct window_context_t * wctx)
 static void window_context_screen_refresh(struct window_context_t * wctx)
 {
 	uint32_t * fb = wctx->surface->pixels;
-	for(int y = 0; y < 240; y++)
+	SDL_LockSurface(wctx->surface);
+	for(int y = 0; y < NES_DISP_H; y++)
 	{
-		for(int x = 0; x < 256; x++)
+		for(int x = 0; x < NES_DISP_W; x++)
 		{
 			uint32_t c = xnes_get_pixel(wctx->nes, x, y);
-			int p = ((y * SDL_SCREEN_SCALE) * (256 * SDL_SCREEN_SCALE)) + x * SDL_SCREEN_SCALE;
+			int p = ((y * SDL_SCREEN_SCALE) * (NES_DISP_W * SDL_SCREEN_SCALE)) + x * SDL_SCREEN_SCALE;
 			for(int j = 0; j < SDL_SCREEN_SCALE; j++)
 			{
 				for(int i = 0; i < SDL_SCREEN_SCALE; i++)
 					fb[p + i] = c;
-				p += (256 * SDL_SCREEN_SCALE);
+				p += (NES_DISP_W * SDL_SCREEN_SCALE);
 			}
 		}
 	}
-	SDL_BlitSurface(wctx->surface, NULL, wctx->screen, NULL);
-	SDL_UpdateWindowSurface(wctx->window);
+	SDL_UnlockSurface(wctx->surface);
+	SDL_UpdateTexture(wctx->texture, NULL, wctx->surface->pixels, wctx->surface->pitch);
+	SDL_RenderClear(wctx->renderer);
+#ifdef SDL_RENDER_FULL_SCREEN
+	SDL_RenderCopy(wctx->renderer, wctx->texture, NULL, NULL);
+#else
+	SDL_RenderCopy(wctx->renderer, wctx->texture, &draw_rect, &draw_rect);
+#endif
+	SDL_RenderPresent(wctx->renderer);
 }
 
 static void window_context_update(struct window_context_t * wctx)
@@ -660,6 +680,9 @@ int main(int argc, char * argv[])
 							break;
 						case 7: /* Start */
 							xnes_controller_joystick_p1(&wctx->nes->ctl, 0, XNES_JOYSTICK_START);
+							break;
+						case 8: /* quit emu */
+							done = 1;
 							break;
 						default:
 							break;
