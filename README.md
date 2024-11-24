@@ -2,18 +2,20 @@
 
 ***
 # Libxnes
-A nice NES emulator fork from https://github.com/xboot/libxnes
+A nice NES emulator fork from https://github.com/xboot/libxnes  
 This project is working in my ARM machines, and SDL2's graphics hardware rendering works well
 
 ## Getting Started
-To compile the arm target
-Make sure your development environment has libsdl2
-Modify examples/linux/Makefile
+To compile the arm target  
+Make sure your development environment has libsdl2  
+Modify examples/linux/Makefile  
 The following environment variable is replaced with your env:
+```shell
     CROSS_COMPILE
     LIBDIRS
     INCDIRS
-
+```
+make
 ```shell
 cd examples/linux
 make
